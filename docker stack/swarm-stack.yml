@@ -5,13 +5,13 @@ services:
     image: redis:alpine
     networks:
       - frontend
-    deploy:
-      replicas: 1
-      update_config:
-        parallelism: 2
-        delay: 10s
-      restart_policy:
-        condition: on-failure
+    deploy:  # cấu hình deploy service trên swarm, không hoạt động khi sử dụng docker-compose
+      replicas: 1  # số lượng container sẽ chạy trên các node worker
+      update_config: # cấu hình update được áp dụng khi cập nhật service
+        parallelism: 2 # số lượng container cập nhật cùng lúc
+        delay: 10s # thời gian delay giữa các lần cập nhật
+      restart_policy: # cấu hình restart khi container theo điều kiện nào
+        condition: on-failure # điều kiện restart khi container bị lỗi
   db:
     image: postgres:9.4
     volumes:
@@ -21,7 +21,7 @@ services:
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
     deploy:
-      placement:
+      placement: # service này sẽ được chạy trên node nào manager
         constraints: [node.role == manager]
   vote:
     image: hiep4hiep/votingapp_vote
@@ -62,14 +62,14 @@ services:
       - db
       - redis
     deploy:
-      mode: replicated
+      mode: replicated # chế độ chạy container theo số lượng
       replicas: 1
-      labels: [APP=VOTING]
+      labels: [APP=VOTING] # label của service
       restart_policy:
         condition: on-failure
         delay: 10s
         max_attempts: 3
-        window: 120s
+        window: 120s # thời gian cửa sổ để xác định số lần thử lại
       placement:
         constraints: [node.role == manager]
 
