@@ -1,0 +1,137 @@
+Vagrant.configure("2") do |config|
+  # Cấu hình cơ bản cho tất cả các máy
+  config.vm.box = "kwilczynski/ubuntu-20.04-docker" # Hoặc một bản phân phối Ubuntu khác
+  # config.vm.box_url = "./docker-box/my_box_docker.box" # Đường dẫn đến file box
+  config.vm.box_version = "0.1.1"
+  
+  # Provisioning để cài đặt Docker
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   # Cập nhật và cài đặt Docker
+  #   sudo apt-get update
+  #   sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+  #   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  #   sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  #   sudo apt-get update
+  #   sudo apt-get install -y docker-ce
+  #   sudo usermod -aG docker vagrant
+  # SHELL
+
+  # Chia sẻ thư mục từ máy host sang tất cả máy ảo
+  # config.vm.synced_folder "./synced_folder", "/synced_folder"
+
+  #### Cấu hình ssh ######
+
+  # Sao chép khóa riêng vào máy ảo
+  config.vm.provision "file", source: File.expand_path("./.ssh/insecure_private_key"), destination: "/home/vagrant/.ssh/id_rsa"
+  # config.vm.provision "file", source: File.expand_path("./.ssh/insecure_private_key.pub"), destination: "/home/vagrant/.ssh/authorized_keys"
+  # config.vm.provision "file", source: File.expand_path("./.ssh/config"), destination: "/home/vagrant/.ssh/config"
+ 
+  # Shell provisioner để cấu hình SSH
+  # Đọc khóa công khai
+  # Thiết lập quyền cho thư mục và các tệp trên máy ảo
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   mkdir -p /home/vagrant/.ssh
+  #   chmod 700 /home/vagrant/.ssh
+  #   chown -R vagrant:vagrant /home/vagrant/.ssh
+  #   chmod 600 /home/vagrant/.ssh/authorized_keys
+  #   chmod 600 /home/vagrant/.ssh/config
+  #   sudo sed -i '/^#PasswordAuthentication yes/s/^#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+  #   sudo systemctl restart sshd.service
+  #   echo "finished"
+  # SHELL
+  # khi tạo máy ảo vagrant sẽ tạo ra public_key dựa theo private_key mặc định để kết nối ssh. 
+  # Để xem thông tin nhập lệnh vagrant ssh-config
+  # Cấu hình khóa riêng SSH
+  # config.ssh.private_key_path = [File.expand_path("./.ssh/insecure_private_key")]
+  # config.ssh.private_key_path = [File.expand_path("C:/Users/admin/.vagrant.d/boxes/my_box_docker/0/virtualbox/vagrant_private_key")]
+  # config.ssh.insert_key = false
+
+  # Test cấu hình
+  config.vm.define "manager1" do |manager|
+      manager.vm.hostname = "manager1"
+      manager.vm.network "private_network", ip: "192.168.56.11"
+      # Cấu hình synced_folder cho manager1
+      manager.vm.synced_folder "./synced_folder", "/home/vagrant"
+      manager.vm.network "forwarded_port", guest: 9000, host: 9000
+  end
+
+  # config.vm.define "manager2" do |manager|
+  #   manager.vm.hostname = "manager2"
+  #   manager.vm.network "private_network", ip: "192.168.56.12"
+  #   # Cấu hình synced_folder cho manager1
+  #   manager.vm.synced_folder "./synced_folder", "/home/vagrant"
+  #   manager.vm.network "forwarded_port", guest: 9000, host: 9000
+  # end
+
+  # Định nghĩa 3 manager nodes với hostname
+  # Định nghĩa các manager nodes
+  # (1..3).each do |i|
+  #   config.vm.define "manager#{i}" do |manager|
+  #     manager.vm.hostname = "manager#{i}"
+  #     manager.vm.network "private_network", ip: "192.168.56.1#{i}"
+  #     # Cấu hình synced_folder cho manager1
+  #     if i == 1
+  #       manager.vm.synced_folder "./synced_folder", "/home/vagrant"
+  #       manager.vm.network "forwarded_port", guest: 9000, host: 9000
+  #     end
+  #   end
+  # end
+
+  #Định nghĩa các worker nodes
+  # (1..5).each do |i|
+  #   config.vm.define "worker#{i}" do |worker|
+  #     worker.vm.hostname = "worker#{i}"
+  #     worker.vm.network "private_network", ip: "192.168.56.2#{i}"
+  #   end
+  # end
+
+  # # Cấu hình cho manager1
+  # config.vm.define "manager1" do |manager|
+  #   manager.vm.hostname = "manager1"
+  #   manager.vm.network "private_network", ip: "192.168.56.11"
+  #   manager.vm.synced_folder "./synced_folder", "/home/vagrant"
+  #   manager.vm.network "forwarded_port", guest: 9000, host: 9000
+  # end
+
+  # # Cấu hình cho manager2
+  # config.vm.define "manager2" do |manager|
+  #   manager.vm.hostname = "manager2"
+  #   manager.vm.network "private_network", ip: "192.168.56.12"
+  # end
+
+  # # Cấu hình cho manager3
+  # config.vm.define "manager3" do |manager|
+  #   manager.vm.hostname = "manager3"
+  #   manager.vm.network "private_network", ip: "192.168.56.13"
+  # end
+
+  # # Cấu hình cho worker1
+  # config.vm.define "worker1" do |worker|
+  #   worker.vm.hostname = "worker1"
+  #   worker.vm.network "private_network", ip: "192.168.56.21"
+  # end
+
+  # # Cấu hình cho worker2
+  # config.vm.define "worker2" do |worker|
+  #   worker.vm.hostname = "worker2"
+  #   worker.vm.network "private_network", ip: "192.168.56.22"
+  # end
+
+  # # Cấu hình cho worker3
+  # config.vm.define "worker3" do |worker|
+  #   worker.vm.hostname = "worker3"
+  #   worker.vm.network "private_network", ip: "192.168.56.23"
+  # end
+
+  # # Cấu hình cho worker4
+  # config.vm.define "worker4" do |worker|
+  #   worker.vm.hostname = "worker4"
+  #   worker.vm.network "private_network", ip: "192.168.56.24"
+  # end
+
+  # # Cấu hình cho worker5
+  # config.vm.define "worker5" do |worker|
+  #   worker.vm.hostname = "worker5"
+  #   worker.vm.network "private_network", ip: "192.168.56.25"
+  # end
+end
