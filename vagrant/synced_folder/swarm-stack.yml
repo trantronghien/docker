@@ -1,0 +1,84 @@
+version: "3.8"
+
+services:
+  # Dịch vụ Samba để chia sẻ thư mục
+  nfs-server:
+    image: itsthenetwork/nfs-server-alpine:12
+    container_name: nfs
+    privileged: true
+    hostname: nfs-server
+    restart: unless-stopped
+    volumes:
+      # - /home/vagrant/nfs_data:/nfsshare
+      - /data/docker-volumes:/nfsshare
+    environment:
+      - SHARED_DIRECTORY=/nfsshare
+      # - SYNC=true
+      # - PERMITTED="192.168.56.* 10.11.99.*"
+    ports:
+      - 2049:2049
+    deploy:
+      placement:
+        constraints: [node.role == manager] # Chỉ chạy trên node manager
+
+  app:
+    # build:
+    #   context: ./app      # Đường dẫn đến thư mục chứa mã nguồn và Dockerfile
+    #   dockerfile: Dockerfile  # Tên Dockerfile (ở đây là app/Dockerfile)
+    image: 192.168.56.11:5000/my-node-app:latest # Tên của Docker image sẽ được tạo
+    ports:
+      - "9000:3000" # Map cổng 3000 của host tới container
+    environment:
+      - PORT=3000 # Đặt biến môi trường cho ứng dụng Node.js
+      # - MYSQL_HOST=mysql  # Tên service MySQL
+      # - MYSQL_USER=root
+      # - MYSQL_PASSWORD=example_password
+      # - MYSQL_DATABASE=mydatabase
+    networks:
+      - app-network # Tham chiếu mạng để kết nối các service nếu có nhiều service
+    volumes:
+      - nfs_volume:/home/vagrant/app            # Gắn kết volume SMB từ dịch vụ Samba vào container
+    deploy:
+      replicas: 2 # Số lượng bản sao của ứng dụng Node.js
+      # resources:
+      # limits:
+      # cpus: "0.5"
+      # memory: 512M
+      restart_policy:
+        condition: on-failure
+
+  # mysql:
+  #   image: mysql:8.0  # Sử dụng phiên bản MySQL 8.0
+  #   deploy:
+  #     replicas: 1  # Chỉ cần một instance cho cơ sở dữ liệu
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 512M
+  #     restart_policy:
+  #       condition: on-failure
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: example_password
+  #     MYSQL_DATABASE: mydatabase
+  #   volumes:
+  #     - mysql-data:/var/lib/mysql  # Lưu trữ dữ liệu MySQL
+  #   networks:
+  #     - app-network
+
+networks:
+  app-network:
+    driver: overlay # Sử dụng overlay network để cho phép các service giao tiếp trong Docker Swarm
+    
+volumes:
+  mysql-data:
+    driver: local
+  nfs_volume:
+    driver: local
+    driver_opts:
+      type: "nfs"
+      o: "addr=192.168.56.11,rw"
+      device: ":/nfsshare"
+
+  nfs_data:
+    driver: local
+
